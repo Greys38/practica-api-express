@@ -1,93 +1,102 @@
 const express = require('express');
-const app = express();
-const PORT = 3000;
+require('dotenv').config();
+const db = require('./config/db');
 
-// Middleware para parsear JSON en el cuerpo de las peticiones
+const app = express();
 app.use(express.json());
 
-// 1. Arreglo en memoria (Simulación de Base de Datos)
-let alumnos = [
-    { id: 1, nombre: 'Ana Gómez', matricula: '20261001', carrera: 'Sistemas' },
-    { id: 2, nombre: 'Carlos López', matricula: '20261002', carrera: 'Sistemas' }
-];
+const PORT = process.env.PORT || 3000;
 
-// Ruta base (confirmación de servidor en línea)
-app.get('/', (req, res) => {
-    res.send('Servidor en línea y funcionando correctamente');
+// 1. GET ALL - Obtener todos los productos
+app.get('/api/productos', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM productos');
+    res.status(200).json(rows);
+  } catch (error) {
+    console.error('Error en GET /api/productos:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
 });
 
-// 2. ENDPOINTS DE LA API REST
-
-// GET /api/alumnos -> Obtener todos los alumnos
-app.get('/api/alumnos', (req, res) => {
-    res.status(200).json(alumnos);
+// 2. GET BY ID - Obtener un producto por su ID
+app.get('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const [rows] = await db.query('SELECT * FROM productos WHERE id = ?', [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ mensaje: 'Producto no encontrado' });
+    }
+    res.status(200).json(rows[0]);
+  } catch (error) {
+    console.error('Error en GET /api/productos/:id:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
 });
 
-// GET /api/alumnos/:id -> Obtener un alumno por ID
-app.get('/api/alumnos/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const alumno = alumnos.find(a => a.id === id);
+// 3. POST - Crear un nuevo producto
+app.post('/api/productos', async (req, res) => {
+  const { nombre, precio, stock } = req.body;
+  if (!nombre || precio == null) {
+    return res.status(400).json({ mensaje: 'El nombre y el precio son obligatorios' });
+  }
 
-    if (!alumno) {
-        return res.status(404).json({ mensaje: 'Alumno no encontrado' });
+  try {
+    const [result] = await db.query(
+      'INSERT INTO productos (nombre, precio, stock) VALUES (?, ?, ?)',
+      [nombre, precio, stock || 0]
+    );
+
+    res.status(201).json({
+      mensaje: 'Producto registrado exitosamente',
+      id: result.insertId,
+      producto: { id: result.insertId, nombre, precio, stock: stock || 0 }
+    });
+  } catch (error) {
+    console.error('Error en POST /api/productos:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
+});
+
+// 4. PUT - Actualizar un producto
+app.put('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
+  const { nombre, precio, stock } = req.body;
+
+  try {
+    const [result] = await db.query(
+      'UPDATE productos SET nombre = ?, precio = ?, stock = ? WHERE id = ?',
+      [nombre, precio, stock, id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ mensaje: 'Producto no encontrado para actualizar' });
     }
 
-    res.status(200).json(alumno);
+    res.status(200).json({ mensaje: 'Producto actualizado exitosamente' });
+  } catch (error) {
+    console.error('Error en PUT /api/productos/:id:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
 });
 
-// POST /api/alumnos -> Crear un nuevo alumno
-app.post('/api/alumnos', (req, res) => {
-    const { nombre, matricula, carrera } = req.body;
+// 5. DELETE - Eliminar un producto
+app.delete('/api/productos/:id', async (req, res) => {
+  const { id } = req.params;
 
-    // Generar un ID dinámico
-    const nuevoId = alumnos.length > 0 ? Math.max(...alumnos.map(a => a.id)) + 1 : 1;
+  try {
+    const [result] = await db.query('DELETE FROM productos WHERE id = ?', [id]);
 
-    const nuevoAlumno = {
-        id: nuevoId,
-        nombre,
-        matricula,
-        carrera
-    };
-
-    alumnos.push(nuevoAlumno);
-    res.status(201).json(nuevoAlumno);
-});
-
-// PUT /api/alumnos/:id -> Actualizar un alumno existente
-app.put('/api/alumnos/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const alumnoIndex = alumnos.findIndex(a => a.id === id);
-
-    if (alumnoIndex === -1) {
-        return res.status(404).json({ mensaje: 'Alumno no encontrado' });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ mensaje: 'Producto no encontrado para eliminar' });
     }
 
-    const { nombre, matricula, carrera } = req.body;
-
-    alumnos[alumnoIndex] = {
-        id: id,
-        nombre: nombre || alumnos[alumnoIndex].nombre,
-        matricula: matricula || alumnos[alumnoIndex].matricula,
-        carrera: carrera || alumnos[alumnoIndex].carrera
-    };
-
-    res.status(200).json(alumnos[alumnoIndex]);
+    res.status(200).json({ mensaje: 'Producto eliminado exitosamente' });
+  } catch (error) {
+    console.error('Error en DELETE /api/productos/:id:', error);
+    res.status(500).json({ mensaje: 'Error interno del servidor' });
+  }
 });
 
-// DELETE /api/alumnos/:id -> Eliminar un alumno
-app.delete('/api/alumnos/:id', (req, res) => {
-    const id = parseInt(req.params.id);
-    const alumnoIndex = alumnos.findIndex(a => a.id === id);
-
-    if (alumnoIndex === -1) {
-        return res.status(404).json({ mensaje: 'Alumno no encontrado' });
-    }
-
-    alumnos.splice(alumnoIndex, 1);
-    res.status(200).json({ mensaje: `Alumno con ID ${id} eliminado correctamente` });
-});
-
-// Iniciar servidor
 app.listen(PORT, () => {
-    console.log(`Servidor escuchando en http://localhost:${PORT}`);
+  console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);
 });
