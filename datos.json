@@ -1,0 +1,12 @@
+[
+  { "nombre": "Laptop Asus Zenbook", "precio": 18500.00, "stock": 10 },
+  { "nombre": "Mouse Inalámbrico", "precio": 350.50, "stock": 45 },
+  { "nombre": "Monitor 27 Pulgadas 144Hz", "precio": 5200.00, "stock": 12 },
+  { "nombre": "Audífonos Gamer RGB", "precio": 890.00, "stock": 25 },
+  { "nombre": "Teclado Mecánico RGB", "precio": 1200.00, "stock": 18 },
+  { "nombre": "Silla Ergonómica", "precio": 3400.00, "stock": 8 },
+  { "nombre": "Disco Duro Externo 1TB", "precio": 1100.00, "stock": 30 },
+  { "nombre": "Memoria RAM 16GB DDR4", "precio": 950.00, "stock": 22 },
+  { "nombre": "Cámara Web Full HD", "precio": 650.00, "stock": 15 },
+  { "nombre": "Micrófono USB Condensador", "precio": 1450.00, "stock": 9 }
+]
